@@ -1,0 +1,308 @@
+
+
+
+Mysql(mariadb安装)：
+1.配置mariadb的yum源，新建一个Mariadb.repo仓库文件
+#编辑创建mariadb.repo仓库文件
+vi /etc/yum.repos.d/MariaDB.repo
+
+2.修改mariadb.repo仓库文件，写入以下内容
+vi /etc/yum.repos.d/MariaDB.repo
+
+[mariadb]
+name = MariaDB
+baseurl = http://yum.mariadb.org/10.1/centos7-amd64
+gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+gpgcheck=1
+
+3.当 MariaDB 仓库地址添加好后，你可以通过下面的一行命令轻松安装 MariaDB。
+
+yum install MariaDB-server MariaDB-client -y
+
+
+mysql创建普通用户：
+	#修改mysql密码
+	MariaDB [(none)]> set password = PASSWORD('redhat123');
+	生产环境里不会死磕root用户，为了数据库的安全以及和其他用户协同管理数据库，就需要创建其他数据库账户，然后分配权限，满足工作需求。
+
+	MariaDB [(none)]> create user yuchao@'127.0.0.1' identified by 'redhat123';
+
+	MariaDB [(none)]> use mysql;
+
+	MariaDB [mysql]> select host,user,password from user where user='yuchao';
+	切换普通用户yuchao，查看数据库信息，发现无法看到完整的数据库列表
+
+	[root@master ~]# mysql -uyuchao -p -h 127.0.0.1
+
+	MariaDB [(none)]> show databases;
+	
+
+mysql权限修改：
+	mysql使用grant命令对账户进行授权，grant命令常见格式如下
+
+	grant 权限 on 数据库.表名 to 账户@主机名            对特定数据库中的特定表授权
+	grant 权限 on 数据库.* to 账户@主机名            　　对特定数据库中的所有表给与授权
+	grant 权限1,权限2,权限3 on *.* to 账户@主机名   　　 对所有库中的所有表给与多个授权
+	grant all privileges on *.* to 账户@主机名   　　 对所有库和所有表授权所有权限
+	退出数据库，使用root登录，开始权限设置
+	[root@master ~]# mysql -uroot -p
+
+	MariaDB [(none)]> use mysql;
+
+	MariaDB [(none)]> grant all privileges on *.* to yuchao@127.0.0.1;
+
+	MariaDB [mysql]> show grants for yuchao@127.0.0.1;
+	复制代码
+	移除权限
+
+	MariaDB [(none)]> revoke all privileges on *.* from yuchao@127.0.0.1;
+		
+mysql配置中文：
+1.修改mysql的配置文件 /etc/my.cnf，写入以下中文配置信息
+	[mysqld]
+	character-set-server=utf8
+	collation-server=utf8_general_ci
+	log-error=/var/log/mysqld.log
+	[client]
+	default-character-set=utf8
+	[mysql]
+	default-character-set=utf8
+2.修改完配置文件，需要重启mysql，使得生效
+	systemctl stop mariadb 
+	systemctl start mariadb 
+
+	
+mysql远程登录授权配置：
+	注意！关闭防火墙。、。。。。这样就不会再出莫名其妙的bug了。。。
+	iptables -F  #清空防火墙规则
+	#关闭防火墙 
+	systemctl stop firewalld
+	#永久关闭防火墙开机自启
+	systemctl disable firewalld
+
+	1.新建一个用于远程登录的账户
+	create user 'username'@'%' identified by 'password';
+	2.给与账户远程登录的权限，授权
+	grant all privileges on *.* to 'username'@'%' identified by 'password';
+	3.刷新权限表，防止不生效
+	flush privileges;
+	4.此时可以在windows登录你的linux数据库拉！！！！
+
+mysql的备份和恢复
+1.备份数据
+mysqldump -u root -p --all-databases > /tmp/db.dump
+2.恢复mysql数据
+	1.登录数据库后
+		source /tmp/db.dump
+	2.在登录时候，进行数据写入
+		mysql -uroot -p < /tmp/db.dump
+		
+
+
+
+ctrl+ d  等于logout 退出回话
+
+ctrl + shift + r  等于快捷登录 
+
+
+
+
+mysql主从同步配置：
+
+主库设置:
+	1.修改配置文件，开启主从同步的功能
+		#修改配置文件
+		vim /etc/my.cnf
+		#修改内容
+		#解释：server-id服务的唯一标识（主从之间都必须不同）；log-bin启动二进制日志名称为mysql-bin 
+		　　[mysqld]
+		　　server-id=1
+		　　log-bin=mysql-bin
+
+		#重启mariadb
+		systemctl start mariadb
+		#重启后，mysql主库已经开启同步功能，创建了mysql-bin日志文件
+		
+	2.创建用于主从同步的账号
+		create user 'username'@'%' identified by 'password';
+	3.给与账号slave的权限
+		grant replication slave on *.* to 'username'@'%';
+	4.检查一下主库创建的账号信息
+		select user,host from mysql.user;
+	5.检查授权账号的权限信息
+		show grants for username@'%';
+	6.实现主库的锁表，防止数据写入
+		flush table with read lock;
+	7.此时可以检查主库的日志状态，已经锁表了，防止日志位置发生变化
+		show master status;
+	8.开始数据备份，导出主库的已经存在数据，然后用于从库写入
+		mysqldump -uroot -p  --all-databases > /data/my_all.dump
+	9.将主库的数据备份文件，scp到从库机器上，然后从库mysql导入数据
+		scp /tmp/all.dump root@10.0.0.11:/opt/
+
+	
+	
+从库的设置：
+	10.在从库上导入主库的最新数据，以便于数据一致性
+		1.登录slave数据库
+		3.删除slave当前机器所有的database，清空database数据，为了保证从库干净
+		2.登录数据库，导入数据
+			source /opt/all.dump
+	11.修改配置文件，添加用于同步的配置，和主库区别开
+		vi /etc/my.cnf   写入配置
+		server-id=5
+	12.重启mariadb 从库 
+	13.检查从库的各项参数
+		show variables like 'log_bin';
+		show variables like 'server_id';
+	14.通过此命令，将slave库同于于master库
+		change master to master_host='10.0.0.10',
+		master_user='bhf',
+		master_password='bhfdsb',
+		master_log_file='mysql-bin.000001',
+		master_log_pos=1485;
+	15.开启主从同步的开关
+		start slave;
+	16.检查复制的状态
+		show slave status\G 
+	17.检查从库同步的两条参数，均为yes确认同步成功
+		    Slave_IO_Running: Yes
+            Slave_SQL_Running: Yes
+	18.此时已经确认主从同步配置ok，前往主库解锁数据库，然后数据写入查看结果
+		master上：
+			unlock tables;  解锁数据库
+	
+		
+确认主从同步配置成功
+
+1.在主库写入数据
+2.在从库查看数据
+
+	
+	
+	
+
+
+
+
+
+redis 
+	windows下安装redis
+	python操作redis
+	redis基本数据类型
+		string
+		list
+		hash
+		set 
+			集合数据类型的基本操作
+sadd/srem   添加/删除 元素
+sismember   判断是否为set的一个元素
+smembers    返回集合所有的成员
+sdiff             返回一个集合和其他集合的差异
+sinter           返回几个集合的交集
+sunion          返回几个集合的并集
+		
+redis编译安装：
+1.下载redis源码
+wget http://download.redis.io/releases/redis-4.0.10.tar.gz
+2.解压缩
+tar -zxf redis-4.0.10.tar.gz
+3.切换redis源码目录
+cd redis-4.0.10.tar.gz
+4.编译源文件
+make 
+5.编译好后，src/目录下有编译好的redis指令
+6.make install 安装到指定目录
+默认在/usr/local/bin
+
+
+redis安装相关：
+	1.更改端口启动
+	2.开启保护模式
+	3.使用密码登录redis 
+		protected-mode yes   #打开保护模式
+		port 6380  #更改默认启动端口
+		requirepass xxxxxx   #设置redis启动密码，xxxx是自定义的密码
+	4.查询redis是否有密码
+		CONFIG get requirepass
+	5.通过命令更改
+		CONFIG set requirepass "xxxxxx"
+	
+redis实例
+	1.这里要补充的知识点是，redis支持多实例的用法
+	2.准备俩配置文件
+		redis-6379.conf
+		redis-6380.conf 
+	3.修改配置文件的参数，第一个 redis-6379.conf 写入如下信息
+		bind 10.0.0.10
+		port 6379
+		daemonize yes
+		pidfile /var/run/redis_6379.pid
+	4.启动一个redis服务端，运行在6379端口上
+		redis-server redis-6379.conf
+	5.修改配置文件redis-6380.conf，然后启动redis的第二个实例
+		redis-server redis-6380.conf  
+	6.此时已经启动好两个redis实例，数据库了
+
+redis主从同步（确保redis同一个版本，例如都是编译安装的）
+	1.在slave数据库上（6380）修改配置文件，添加语句
+		slaveof 10.0.0.10 6379
+	2.重启slave的redis数据库（6380）
+	3.确认主从同步是否成功 
+			
+临时补充：用于查看配置文件有用信息的命令
+	grep -v '^#' redis-6379.conf |  grep -v '^$' 
+	4.
+
+
+
+nginx安装配置使用
+
+1.通过yum安装nginx软件
+yum install nginx -y 
+
+2.启动nginx
+systemctl start nginx 
+
+3.检查服务器的80端口，和nginx进程，是否启动
+
+4.通过windows访问linux的10.0.0.10:80端口，访问nginx主站的首页文件
+
+5.一分钟做出个豆瓣
+	1.找到nginx的配置文件
+		可以通过find先找一下   find / -name nginx 
+	通过yum装的话，是这个文件：
+		/etc/nginx/nginx.conf
+	2.查看nginx主站的网页根目录在哪里？
+		通过命令过滤查看配置文件信息
+	   grep -v '^#' /etc/nginx/nginx.conf |grep -v '^$'
+	3.找到server{}
+	查看一下内容
+			server {
+				listen       80 default_server;
+				listen       [::]:80 default_server;
+				server_name  _;
+				
+				#重点看这里！！！！
+				#这个root参数，就是指定nginx主站的网页根目录
+				#因此，我们要找的index.html就在这里
+				#并且，可以放入静态文件，到这个html文件夹下
+				root         /usr/share/nginx/html;
+				
+				# Load configuration files for the default server block.
+				include /etc/nginx/default.d/*.conf;
+				location / {
+				}
+	4.修改网页首页文件 index.html 
+		vim index.html   #写入豆瓣网站的源码文件
+		#保存退出即可
+	5.下载一张图片，放入/usr/share/nginx/html文件夹下，测试访问
+	10.0.0.10:xiaohua.jpg
+
+	
+博客地址
+https://www.cnblogs.com/pyyu/articles/9365054.html
+https://www.cnblogs.com/pyyu/p/9468680.html
+
+
+

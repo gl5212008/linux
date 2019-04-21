@@ -1,0 +1,283 @@
+
+
+1.编译安装python3
+
+在我们开始装机的时候
+很多同学选的是 minmal install最小化安装(就会缺少很多软件包，依赖包)
+那么假设你在编译安装py3，mysql，nginx等软件的时候，就会依赖于这些组件的基础运行
+解决这个依赖包的问题吧，最好的方式就是 yum install ***** 
+
+
+
+rpm方式安装（需要处理依赖关系，不推荐！）
+yum安装(适合小型软件)
+编译安装(适合大型软件，需要自定制功能的软件)
+
+编译(源代码)安装软件的三部曲：
+
+1.首选解决软件包依赖问题
+yum install gcc patch libffi-devel python-devel  zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel -y
+2.下载软件的源代码（如python3.6.4.tgz）
+3.解压缩软件源代码，切换进入源代码目录
+4./configure释放编译文件，make 编译，make install  编译安装 
+
+
+
+编码编译安装python3
+
+1.解决依赖关系
+
+yum install gcc patch libffi-devel python-devel  zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel -y
+
+2.下载python源代码
+wget https://www.python.org/ftp/python/3.4.7/Python-3.4.7.tar.xz
+3.解压缩python源代码
+xz -d Python-3.4.7.tar.xz
+tar -xf Python-3.4.7.tar
+4.切换进入python源代码目录
+cd /opt/Python-3.4.7
+5.开始编译安装，释放编译文件
+
+./configure --prefix=/opt/python347/    #此时还不会生成这个文件夹！
+
+6.开始编译，编译安装
+make 
+make install     #直到这两步走完，才会生成。创建 /opt/python347/
+
+./configure是用来检测你的安装平台的目标特征的。比如它会检测你是不是有CC或GCC，并不是需要CC或GCC，它是个shell脚本。
+#这个confiure脚本执行后，会生成一个Makefile文件
+
+
+make是用来编译的，它从Makefile中读取指令，然后编译。
+
+make install是用来安装的，它也从Makefile中读取指令，安装到指定的位置。
+
+
+
+
+
+然后这两句可以一局就执行成功 make && make install 
+7.检查你自己制定的安装路径，/opt/python347/
+查看/opt/python347/bin目录，python3的可执行命令都在bin底下了
+8.配置软连接，快捷启动python3和pip3
+
+ln -s /opt/python347/bin/python3    /usr/bin/python3
+ln -s /opt/python347/bin/pip3  /usr/bin/pip3
+
+9.配置系统环境变量，配置PATH，加入python3的目录
+#尽量用这一步
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:/opt/python347/bin/
+#这一步尽量别用了
+PATH=$PATH:/opt/python347/bin/
+
+#配置环境变量需谨慎，如果配错了，你的其他命令也会丢失！
+
+
+写入个人配置文件，永久生效/etc/profile
+vim /etc/profile  #编辑个人配置文件，写入PATH
+PATH=$PATH:/opt/python347/bin/
+
+source /etc/profile  #读取一下配置文件，生效配置
+
+
+
+
+安装启动django
+#创建django项目
+
+django-admin startproject mysite
+
+#修改django  settings.py配置文件
+ALLOWED_HOSTS = ['*']
+#启动django
+
+python3 manage.py runserver 0.0.0.0:9000
+
+
+
+
+#可能出现的问题
+网页访问不到
+	解决办法：  iptables -F  
+				setenforce 0
+	关闭防火墙
+	
+	不要用win8 win10自带的浏览器
+	用chrome
+	
+
+#提示命令pip找不到
+
+pip install --upgrade pip
+
+但是你系统现在是pip3
+执行这条：
+pip3 install --upgrade pip
+
+
+
+
+Python环境安装之virtualenv虚拟环境
+
+如果开发环境需要多个django版本，如何解决？
+1.再开一台机器
+2.装俩虚拟机
+3.再买个电脑
+
+4.装俩django？问题是一个python环境下，无法让你装俩django
+5.装俩python，如果有大量的环境依赖，装N个python解释器？？？？
+
+
+在开发环境中，我们想达到的效果是
+
+一个环境运行一个python项目。减少环境的臃肿状态！！！
+或者说，我们现在需要安装俩django环境，一个是1.11.15 一个是2.0
+
+
+物理python环境的包： pip3 list 
+Package      Version
+------------ -------
+pip          18.1   
+pytz         2018.7 
+setuptools   28.8.0 
+Werkzeug     0.14.1 
+
+虚拟环境python的包：  (venv)pip3 list   此时的pip3 来自于虚拟环境
+Package      Version
+------------ -------    
+Django       2.0    
+pip          18.1   
+setuptools   28.8.0 
+Werkzeug     0.14.1 
+
+需求2：在虚拟环境venv2中，运行django1.11.15的包，此时环境是：(venv2)pip3 list
+Package      Version
+------------ -------    
+Django       1.11.15   
+pip          18.1   
+setuptools   28.8.0 
+Werkzeug     0.14.1 
+
+
+安装virtualenv：
+	#通过pip3安装
+	pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple virtualenv
+	#创建虚拟环境 venv 
+	virtualenv --no-site-packages --python=python3  venv
+		#激活虚拟环境，进入虚拟环境!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!()
+		重点，这个虚拟环境不是什么虚拟的linux，只是复制了一份python解释器！
+	#激活虚拟环境
+	source /data/mydjango1.11.15/venv/bin/activate
+	#此时你的环境变量，已经被修改，添加了虚拟环境
+	可以查看echo $PATH
+
+	#安装django1.11.15
+	pip3 install django==1.11.15
+
+	django-admin startproject mysite115
+	启动django1.11.15
+
+
+#练习：
+在物理环境中安装django2.0 ，启动
+在venv中安装django1.11.15  启动
+分别访问8000端口，9000端口，测试页面
+
+
+
+确保开发环境一致性的操作
+	二、确保开发环境的一致性
+	1.假设我们在本地开发环境，准备好了项目+依赖包环境
+	2.现在需要将项目上传至服务器，上线发布
+	3.那么就要保证服务器的python环境一致性
+	复制代码
+	解决方案：
+	1.通过命令保证环境的一致性，导出当前python环境的包
+	pip3 freeze > requirements.txt   
+
+	这将会创建一个 requirements.txt 文件，其中包含了当前环境中所有包及 各自的版本的简单列表。
+	可以使用 “pip list”在不产生requirements文件的情况下， 查看已安装包的列表。
+
+
+	2.上传至服务器后，在服务器下创建virtualenv，在venv中导入项目所需的模块依赖
+	pip3 install -r requirements.txt
+
+
+
+	
+
+虚拟环境之virtualenvwrapper
+  虚拟环境的强大，我们已经知道，可以隔绝多个python解释器环境
+  但是他的弊端也很多
+  
+1.安装virtualenvwraperr，在系统解释器下安装
+指定清华pip源加速下载
+pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple virtualenvwrapper
+2.配置virtualenvwrapper的环境变量，使得每次开机就加载
+
+1.vim ~/.bashrc  #打开这个文件，写入以下两行信息（根据自己目录结构修改参数）
+	export WORKON_HOME=~/Envs   #设置virtualenv的统一管理目录
+	source /opt/python347/bin/virtualenvwrapper.sh     #执行virtualenvwrapper安装脚本
+
+2.修改linux的默认python环境变量，修改/usr/bin/python，让他是python3
+
+rm -rf /usr/bin/python  #郑重强调以下，使用rm -rf 命令，提前做好快照功能！！！！
+ln -s /opt/python347/bin/python3   /usr/bin/python 
+
+3.读取virtualenvwrapper的环境变量，使得每次开机就加载
+source ~/.bashrc 
+
+4.此时virtualenvwrapper就会自动创建一些管理命令
+
+基本使用virtualenvwrapper，管理virtualenv
+
+	创建一个虚拟环境，默认会激活当前这个虚拟环境
+	mkvirtualenv my_django115
+
+	再创建一个虚拟环境,默认切换进入my_django2的虚拟环境
+	mkvirtualenv my_django2
+	
+	#任意切换不同的虚拟环境，workon提供tab补全功能，非常方便
+	
+	workon   my_django115
+	
+	workon   my_django2 
+	这个命令非常方便的用法就是，在物理环境下，快速进入虚拟环境
+	
+	当然也可以手动停止虚拟环境
+	deactivate
+	
+其他virtualenvwrapper管理命令
+删除虚拟环境，需要先退出虚拟环境
+rmvirtualenv my_django115
+
+复制代码
+lsvirtualenv
+列举所有的环境。
+cdvirtualenv
+导航到当前激活的虚拟环境的目录中，比如说这样您就能够浏览它的 site-packages 。
+cdsitepackages
+和上面的类似，但是是直接进入到 site-packages 目录中。
+lssitepackages
+显示 site-packages 目录中的内容。
+
+完整官网介绍：https://virtualenvwrapper.readthedocs.io/en/latest/command_ref.html
+	
+	
+练习：
+创建好virtualenvwrapper，创建两个django项目，一个flask项目，并且运行出web界面
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

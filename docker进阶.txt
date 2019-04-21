@@ -1,0 +1,253 @@
+﻿
+docker回顾：
+
+
+安装docker，配置epel源，配置docker官方源
+yum install docker-ce  -y 
+
+启动docker
+systemctl start/stop/restart/status  docker #启动docker
+systemctl enable docker  #设置开机启动docker 
+systemctl  disable docker   #取消开机启动 
+
+#docker常用命令
+docker version 
+
+#镜像 image 
+docker  hub    #官方镜像，如同github
+docker pull   centos  #下载镜像
+docker search  centos  #搜索镜像
+docker imgaes   #查看已有镜像
+docker image ls #查看，同上
+#必须删除没有关联的容器记录
+docker rmi  镜像id/镜像名   #删除镜像
+
+docker tag  旧的镜像名     yuchao163/centos-flask 
+
+docker push  镜像id   #推送镜像到docker hub
+
+
+
+
+#容器 container
+docker run  centos 
+	-i  交互式
+	-t   终端界面
+	-d    后台运行
+	-p    映射端口，指定 宿主机的port：容器的port 
+	-P    映射端口，随机宿主机的端口：容器的端口
+	--rm   运行容器退出时候，删除容器运行记录
+
+docker ps   #查看正在运行的容器
+
+docker ps -a  #查看所有运行过的容器记录（有挂的，有没挂的）
+		  -q   #查看容器id
+
+#必须删除已经停止的容器，未停止的就报错了
+docker rm  `docker ps -aq`  #批量删除容器记录 
+
+docker commit 容器id  #提交容器，构建一个镜像
+
+docker exec -it   容器id  #进入已经存在，且运行的容器
+	
+   
+
+
+
+#仓库 
+docker hub #共有仓库
+
+
+
+docker login  #登录docker hub账号
+	#假设我用的docker hub登录  
+	docker tag  镜像名  yuchao163/镜像名
+	
+	docker push  yuchao163/镜像名   >  docker hub 
+
+docker registry #私有仓库
+	先docker run  registry   #运行一个本地镜像仓库
+
+	docker push  私有仓库ip:port  
+
+容器加速
+#上周是一条命令，自动生成
+curl xxxxx
+[root@master ~ 08:44:13]#cat /etc/docker/daemon.json 
+{
+    "registry-mirrors": [
+        "http://95822026.m.daocloud.io"
+    ],
+    "insecure-registries": ["10.0.0.10:5000"]
+}
+
+
+dockerfile 参数解释
+
+Dockerfile  
+
+
+FROM scratch #制作base image 基础镜像，尽量使用官方的image作为base image
+FROM centos #使用base image
+FROM ubuntu:14.04 #带有tag的base image
+
+LABEL version=“1.0” #容器元信息，帮助信息，Metadata，类似于代码注释
+
+LABEL maintainer=“yc_uuu@163.com"
+
+#对于复杂的RUN命令，避免无用的分层，多条命令用反斜线换行，合成一条命令！
+RUN yum update && yum install -y vim \
+    Python-dev #反斜线换行
+	
+RUN   yum install nginx -y 
+RUN   yum install mysql -y 
+RUN   yum install php-*  -y 
+
+#安装一个lnmp环境 
+
+
+WORKDIR /root #相当于linux的cd命令，改变目录，尽量使用绝对路径！！！不要用RUN cd
+WORKDIR /test #如果没有就自动创建
+WORKDIR demo #再进入demo文件夹
+
+#   RUN pwd     #打印结果应该是  /test/demo
+
+#把宿主机内的文件，添加到容器内
+#添加文件到容器内，并且还有解压缩的功能
+
+
+ADD and COPY 
+ADD hello /  #把本地文件添加到镜像中，吧本地的hello可执行文件拷贝到镜像的/目录
+ADD test.tar.gz /  #添加到根目录并解压
+
+WORKDIR /root
+ADD hello test/  #进入/root/ 添加hello可执行命令到test目录下，也就是/root/test/hello 一个绝对路径
+COPY hello test/  #等同于上述ADD效果
+
+ADD与COPY
+   - 优先使用COPY命令
+    -ADD除了COPY功能还有解压功能
+	
+添加远程文件/目录使用curl或wget
+
+
+ENV   变量名  变量值 
+
+
+ENV #环境变量，尽可能使用ENV增加可维护性
+
+ENV MYSQL_VERSION 5.6 #设置一个mysql常量
+
+RUN yum install -y mysql-server=“${MYSQL_VERSION}” 
+
+
+
+
+运行一个flask容器，并且可以将此容器，打包成镜像，将镜像文件可以传输给别人用
+
+
+准备一个系统 
+
+
+准备python解释器
+
+安装flask模块
+
+编写flask脚本代码
+
+运行flask代码
+
+
+构建flask web镜像
+通过镜像，运行处容器实例
+
+
+3.构建镜像image
+docker build -t yuchao163/flask-hello-docker .
+
+4.查看创建好的images
+docker image ls
+
+5.启动此flask-hello-docker容器，映射一个端口供外部访问
+docker run -d -p 8080:8080 yuchao163/flask-hello-docker
+
+
+
+
+构建一个flask dockerfile 
+1.准备一个flask  web脚本  app.py 
+vim app.py  
+
+from flask import Flask
+app=Flask(__name__)
+@app.route('/')
+def hello():
+    return "hello docker"
+if __name__=="__main__":
+    app.run(host='0.0.0.0',port=8080)
+	
+
+2.准备一个Dockerfile，写入以下内容
+FROM python:2.7
+LABEL maintainer="Chao Yu<yc_uuu@163.com>"
+RUN pip install flask
+COPY app.py /app/
+WORKDIR /app
+EXPOSE 8080
+CMD ["python","app.py"]
+
+3.构建镜像，执行命令，app.py必须和Dockerfile在一层
+docker build -t yuchao163/flask-hello-docker .
+
+4.构建完镜像后，查看镜像
+docker image ls 
+
+5.运行镜像文件，构建容器实例
+docker run -d -p 8080:8080  yuchao163/flask-hello-docker
+
+6.检查运行中的容器实例
+docker ps 
+
+7.导出yuchao163/flask-hello-docker这个镜像，可以scp传输给其他人使用
+	1.导出docker镜像
+	docker save  镜像名  >  镜像压缩文件
+	2.导入docker镜像文件
+	docker load < 镜像压缩文件
+
+8.将yuchao163/flask-hello-docker此镜像，上传到docker hub，或者docker registry
+
+
+
+
+今日内容
+dockerfile
+
+saltstack
+
+ansible
+
+运维管理工具
+
+
+rabbitmq/rpc/zeromq    
+远程消息队列  
+
+1.saltstack环境配置
+请看博客，详细步骤
+https://www.cnblogs.com/pyyu/p/9465608.html
+
+2.salt常用命令
+salt-key  -L #查看所有秘钥
+-L  #查看KEY状态
+-A  #允许所有
+-D  #删除所有
+-a  #认证指定的key
+-d  #删除指定的key
+-r  #注销掉指定key（该状态为未被认证)
+
+
+
+
+
+
+

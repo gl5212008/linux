@@ -1,0 +1,87 @@
+﻿nginx+uwsgi+django 配置：
+
+1.配置好virtualenvwrapper虚拟环境，创建一个新的虚拟环境
+
+2.准备好django项目
+
+3.安装uwsgi
+在虚拟环境下安装 uwsgi
+pip3 install uwsgi 
+
+4.创建uwsgi配置文件  uwsgi.ini
+[uwsgi]
+#使用nginx连接时使用
+socket=0.0.0.0:9000
+#不用nginx直接当做web服务器使用
+#http=0.0.0.0:9000
+#项目目录绝对路径
+chdir=/root/Envs/django15/mysite15
+#wsgi文件路径，在项目底下
+wsgi-file=mysite15/wsgi.py
+#指定解释器目录
+home=/root/Envs/django15
+processes=4
+threads=2
+master=True
+pidfile=uwsgi.pid
+
+5.配置nginx支持转发uwsgi请求
+主要修改配置如下：
+	#负载均衡池
+   upstream django {
+    server 0.0.0.0:9000 weight=10;
+}
+    #gzip  on;
+    #虚拟主机标签段，在这定义mytb.com
+    server {
+        listen       80;
+        server_name  www.s12django.com;
+        location / {
+            include /opt/nginx1-12/conf/uwsgi_params; 
+            uwsgi_pass  django;
+            #root   /opt/static/mytb/;
+            #index  index.html index.htm;
+        }
+		#nginx处理静态资源配置
+		location /static  {
+        alias /opt/static/django;
+}
+
+
+6.配置django项目，收集静态文件
+	#关闭debug模式
+	debug=False
+
+	#收集静态文件的目录，静态文件内容都放这里了
+	STATIC_ROOT='/opt/static/django'
+	STATIC_URL = '/static/'
+	STATICFILES_DIRS=[
+		os.path.join(BASE_DIR,"static"),
+	]
+	
+7.执行命令统一收集静态文件，使得网站正常加载js，css
+python3 manage.py collectstatic
+
+8.安装supervisor进程管理工具
+	1.通过easy_install下载
+	easy_install supervisor
+	
+	2.生成supervisor配置文件
+	echo_supervisord_conf > /etc/supervisord.conf
+	
+	3.添加进程管理命令
+	[program:my_django15]
+	command=/root/Envs/django15/bin/uwsgi --ini /root/Envs/django15/mysite15/uwsgi.ini
+	
+	4.启动supervosr，管理uwsgi
+	supervisord -c /etc/supervisord.conf #启动supervisor
+	supervisorctl -c /etxc/supervisord.conf restart my  #重启my项目
+	supervisorctl -c /etc/supervisord.conf [start|stop|restart] [program-name|all]
+
+	
+	
+
+
+
+
+

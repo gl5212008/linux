@@ -1,0 +1,395 @@
+
+	1. 通过远程连接的方式，管理linux机器
+		-配置ip地址
+		-通过xshell终端软件，连接linux服务器
+			ssh root@10.0.0.10   登录
+	2.登录进入linux终端
+	linux有几个终端呢？
+		linux有7个终端
+		通过ctrl + alt + f1-f7 切换终端
+		
+
+	linux文件目录结构
+	一切以根'/'  目录开始
+	目录分割符，linux是 是 斜杠 '/' ，不同于 window的反斜杠 '\'
+
+	目录划分
+	/   
+		/root	
+			/root/Desktop
+			
+			
+	比较重要的文件夹有哪些？
+	/home   普通用户家目录   
+		/home/xiaofeng
+		/home/wupeiqi
+		
+	/root    超级用户的家目录
+	/etc   存放软件的配置文件
+		 一般来说，通过yum(pip)自动安装的软件，配置文件一般都在/etc下
+	     /etc/my.conf   mysql的配置文件
+		 /etc/redis.conf   redis的配置文件
+		 
+	/sbin  存放可执行命令 文件
+	/bin    存放可执行命令 文件
+	/usr/local/bin   存放可执行命令 文件
+	/opt   存放额外安装的软件目录
+		比如咱们要安装nginx软件，python3软件，正规的存放目录是/opt
+		/opt/nginx1-12/
+		/opt/python36/
+	/tmp 存放临时文件，不重要的文件，文件夹
+	/var  存放系统日志文件居多，比如存放nginx，python，django等等日志
+		
+	
+	临时补充的概念
+		linux下绿色文件代表可执行文件
+			蓝色文件代表文件夹
+			白色文件代表普通文件
+			
+linux目录操作
+
+对linux目录，文件夹操作的命令
+
+增
+
+touch 创建普通文本
+mkdir   创建文件夹
+	-p参数 递归创建文件夹
+[root@localhost tmp]# mkdir -p  /tmp/oldboyedu/python/wupeiqi/chaoge/xiaofeng
+
+mkdir -p test/{a,b,c,d}
+mkdir -p a/b/c/d/e
+
+vi   编辑文本文件，相当于windows下的notepad++
+
+
+删
+rm  用于删除文件 或 文件夹
+rmdir  删除空的，文件夹
+
+
+
+改
+move  >  mv   
+mv  旧文件名字   新文件夹名字
+
+查
+cat  查看文件内容
+ls  查看文件夹内容
+
+	
+打印当前工作目录
+pwd
+
+
+linux的参数作用
+	帮助自己更友好的查看系统信息
+比如
+ls -la      l参数是竖状显示信息
+			a参数是显示所有信息，以及隐藏文件，文件夹
+				文件夹下以  . 开头的文件，默认是隐藏文件
+.    一个点，代表当前工作目录
+..   两个点，代表上一级工作目录
+-    上一次的工作目录
+~    代表当前登录的用户，的家目录  root用户是/root家目录，普通用户呢？/home/xiaofeng/ 
+
+
+
+linux的环境变量 PATH
+通过echo命令打印出 PATH变量的值
+
+[root@localhost tmp]# echo $PATH
+linux环境变量通过冒号分隔符区分
+/usr/local/sbin:
+/usr/local/bin:
+/usr/sbin:
+/usr/bin:
+/root/bin:
+/opt/python36:
+/opt/mysql5-6/bin:
+
+linux通过which找到命令的path变量
+
+
+
+
+windows的环境变量PATH：
+C:\ProgramData\Anaconda3\Scripts;
+C:\mysql-5.7.22-winx64\mysql-5.7.22-winx64\bin;
+C:\Python27;
+C:\ffmpeg\bin;
+C:\Program Files\nodejs\;
+D:\yuan\redis-3.2;
+
+PATH用来干啥的？
+就是说，我们在命令输入命令的时候，操作系统会先去path里面找他的路径
+比如，我们输入python这个命令，然后系统就去path找。
+咔，找到了C:\Python27; 然后就执行
+
+name='alex'
+
+linux的路径概念：
+绝对路径
+从根路径出发，找到你想要的东西
+就是起点是 斜杠，是根
+
+无论你在什么位置，输入绝对路径的命令，一定不会错！！
+[root@localhost oldboyedu]#  ls -l  /tmp/oldboyedu/python/wupeiqi/chaoge/
+
+
+相对路径
+以当前工作目录为参考点，找到某个文件，相对路径慎用，看清楚！！
+
+./first.py
+
+./ 代表 当前工作路径  .  是当前目录   /  是分隔符
+ 
+
+[root@localhost oldboyedu]# ls -l   ./python/wupeiqi/chaoge/
+
+Linux文件系统
+用户在硬件存储设备中执行的文件建立，写入，读取，修改，转存与控制等操作都是依赖文件系统完成的。文件系统的作用是合理规划硬盘，保证用户正常使用。
+
+Linux系统支持数十种文件系统，常见文件系统如下。
+
+Ext3    是一款日志文件系统，能够在系统异常宕机时避免文件系统资料丢失，并能 自动修复数据的不一致与错误。
+Ext4     Ext3 的改进版本，作为 RHEL 6 系统中的默认文件管理系统，它支持的存储容 量高达 1EB(1EB=1,073,741,824GB)，且能够有无限多的子目录。另外，Ext4 文件系统能够批量分配 block 块，从而极大地提高了读写效率。
+XFS     是一种高性能的日志文件系统，而且是 RHEL 7 中默认的文件管理系统，它的优势在发生意外宕机后尤其明显，即可以快速地恢复可能被破坏的文件，而且强大的 日志功能只用花费极低的计算和存储性能。并且它最大可支持的存储容量为 18EB， 这几乎满足了所有需求。
+/etc/fstab是用来存放文件系统的静态信息的文件
+cat /etc/fstab #检查linux的文件系统
+
+python一切皆对象
+
+Linux一切皆文件
+
+linux命令的组成格式
+
+命令  参数   对某个文件操作
+
+
+
+touch命令
+	创建普通文本
+	修改文本时间戳(伪造时间戳)
+
+stat命令
+	查看文件详细信息
+	
+	
+vi命令编辑器
+vi  my.py   #打开这个文件
+	1.此时你进入了一个命令模式(等待你输入命令)
+	2.你可以输入i  o  a  进入一个编辑，插入模式
+	3.写入代码
+	4.回到  底线命令模式，输入命令，保存退出
+		按下esc键，进入底线命令模式，退出编辑模式
+		输入  :wq!     w 写入模式
+						q 退出
+						! 强制性
+		
+	
+	
+
+cat命令
+用于查看文本信息
+#查看文件，显示行号
+cat -n xxx.py
+#猫,查看文件
+cat xxx.py
+
+#在每一行的结尾加上$符
+[root@master tmp]# cat -E 1.txt
+
+#追加文字到文件
+cat >>/tmp/oldboy.txt << EOF
+唧唧复唧唧
+木兰开飞机
+开的什么机
+波音747
+EOF
+
+
+1.more命令用于查看内容较多的文本，例如要看一个很长的配置文件，cat查看内容屏幕会快速翻滚到结尾。
+
+2.more命令查看文本会以百分比形式告知已经看到了多少，使用回车键向下读取内容
+
+more /etc/passwd
+按下空格space是翻页
+按下b键是上一页
+回车键向下读取内容
+
+
+
+输入/输出 重定向符号
+1.>>    追加重定向，把文字追加到文件的结尾
+	理解为with open 的 a 模式
+	
+	
+2.>     重定向符号，清空原文件所有内容，然后把文字覆盖到文件末尾
+	理解为 w  模式
+
+3.<     输入重定向
+	把命令信息，写入到前面的命令
+
+4.<<    将输入结果输入重定向
+
+echo "oldboy-python666" > /tmp/oldboy.txt
+echo "chaoge666" >> /tmp/oldboy.txt
+cat >>/tmp/oldboy.txt << EOF
+------------------------------------
+我想把命令执行的结果信息，写入到文件中
+ip addr > /tmp/network.txt   #标准输出重定向 把命令执行结果信息，放入到文件中
+3.通配符  
+ls -l /etc/us*
+
+
+echo命令用于在终端输出字符串或变量提取后的值，格式是“echo 【字符串|$变量】”
+
+#默认吧内容显示到终端上    
+echo "超哥666"
+#超哥平时比较低调，不想让别人知道他666，怎么办？要么把“超哥666”写入到文件里！
+echo "超哥666" > /tmp/chaoge.txt
+echo $PATH #取出打印PATH的值
+
+复制 > copy > cp
+#移动xxx.py到/tmp目录下
+cp xxx.py /tmp/
+#移动xxx.py顺便改名为chaoge.py
+cp xxx.py /tmp/chaoge.py
+
+Linux下面很多命令，一般没有办法直接处理文件夹,因此需要加上（参数） 
+cp -r 递归,复制目录以及目录的子孙后代
+cp -p 复制文件，同时保持文件属性不变    可以用stat
+cp -a 相当于-pdr
+#递归复制test文件夹，为test2
+cp -r test test2
+
+cp是个好命令，操作文件前，先备份
+cp main.py main.py.bak
+
+
+
+Linux提供的管道符“|”讲两条命令隔开，管道符左边命令的输出会作为管道符右边命令的输入。
+常见用法：
+#检查python程序是否启动
+ps -ef|grep "python"
+
+#找到/tmp目录下所有txt文件
+ls /tmp|grep '.txt'
+
+#检查nginx的端口是否存活
+netstat -tunlp |grep nginx
+
+
+head、tail命令
+
+head显示文件前几行，默认前10行
+tail显示文件后几行，默认后10行
+#查看前两行
+head -2 /tmp/oldboy.txt
+#查看后两行
+tail -2 /tmp/oldboy.txt
+#持续刷新显示
+tail -f xx.log
+
+#显示文件10-30行
+head -30 /tmp/oldboy.txt |tail -21
+
+tail -f /var/log/mysql.log  常用于 对日志文件监控，检测，日志实时写入的信息
+
+
+
+sed命令和gerp一样，用于对文本过滤
+sed还可以修改文本
+
+sed命令
+s 替换指令
+d 删除指令
+g 全局替换
+
+#找到/tmp/pwd.txt文件中所有的root字符串，全局替换为CHAO，但是不会写入到文件，只会返回替换结果
+sed   -i  's/root/CHAO/g' /tmp/pwd.txt  
+
+
+sed 参数
+-i 编辑，写入到文件，不会返回命令执行结果，直接生效
+
+#找到26行，删除，  
+sed -i  '26d' /tmp/pwd.txt 
+
+#删除文件空白行
+sed -i '/^$/d'  filename.txt 
+
+alias别名命令
+给命令添加别名
+
+实例：
+当一个初级开发入职的时候，我不给他用rm命令
+
+rm 我给他提示，你可别用rm了吧，球球你了
+
+#设置linux别名
+alias rm="echo '求求你啦，强哥，别用rm了'" 
+
+#取消linux别名
+unalias rm
+
+
+查找命令的绝对路径
+which
+whereis 
+
+#查看系统版本
+cat /etc/os-release 
+
+scp命令
+Linux scp命令用于Linux之间复制文件和目录。
+
+scp是 secure copy的缩写, scp是linux系统下基于ssh登陆进行安全的远程文件拷贝命令。
+
+#传输本地文件到远程地址
+scp 本地文件  远程用户名@远程ip:远程文件夹/
+scp 本地文件  远程用户名@远程ip:远程文件夹/远程文件名
+
+
+scp -r  本地文件夹  远程用户名@远程ip:远程文件夹/
+scp -r /tmp/oldboy     root@192.168.1.155:/home/oldboy
+
+#复制远程文件到本地
+scp root@192.168.1.155:/home/oldboy.txt /tmp/oldboy.txt
+scp -r root@192.168.1.155:/home/oldboy      /home/
+
+
+du命令
+统计文件，文件夹大小
+
+面试题：请写出如何统计 /var/log/django/ 文件夹的大小
+du  -sh /var/log/django 
+
+
+top命令
+top 命令用于动态地监视进程活动与系统负载等信息
+
+时间同步的命令
+ntpdate -u ntp.aliyun.com  和阿里云同步
+
+//以系统时间为基准，修改硬件时间
+[root@oldboy_python ~ 10:29:07]#hwclock -w
+
+wget -r -p http://www.luffycity.com#递归下载路飞所有资源，保存到www.luffycity.com文件中
+
+博客地址：
+https://www.cnblogs.com/pyyu/articles/9314206.html
+
+
+
+
+
+
+
+
+
+
+
+
+
